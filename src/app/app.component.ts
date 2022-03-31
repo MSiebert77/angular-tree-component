@@ -1,6 +1,6 @@
 import { Component, ViewChild } from '@angular/core';
 import { AppsettingsService } from './appsettingsService';
-import { TodoItemFlatNode, TodoItemNode } from './material-tree/datamodel/dataModel';
+import { FlateTreeNode } from './material-tree/datamodel/dataModel';
 import { MaterialTreeComponent } from './material-tree/material-tree.component';
 
 @Component({
@@ -10,7 +10,7 @@ import { MaterialTreeComponent } from './material-tree/material-tree.component';
 })
 export class AppComponent {
   title = 'material-tree';
-  draggingItem: TodoItemFlatNode[] = undefined;
+  draggingItem: FlateTreeNode[] = undefined;
   @ViewChild("treeTarget", { static: true }) treeTarget: MaterialTreeComponent;
   @ViewChild("treeSource", { static: true }) treeSource: MaterialTreeComponent;
 

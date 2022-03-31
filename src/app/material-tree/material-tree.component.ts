@@ -3,8 +3,8 @@ import { FlatTreeControl } from '@angular/cdk/tree';
 import { Component, Input, OnInit } from '@angular/core';
 import { MatTreeFlatDataSource, MatTreeFlattener } from '@angular/material/tree';
 import { UUID } from 'angular2-uuid';
-import { ChecklistDatabase } from './checkListDatabase';
-import { TodoItemFlatNode, TodoItemNode } from './datamodel/dataModel';
+import { MaterialTreeDataBase } from './materialTreeDatabase';
+import { FlateTreeNode, TreeNode } from './datamodel/dataModel';
 
 @Component({
   selector: 'app-material-tree',
@@ -18,51 +18,68 @@ export class MaterialTreeComponent implements OnInit{
   @Input('id') id: string;
   @Input('dataKey') dataKey: number;
 
+  // Id des drag-ghosts, der alle wichtigen Informationen des Drag/Drop Objektes enthält
   private dragGhostId: string = "drag-ghost";
+
+  private newItemText: string = "Neuer Eintrag";
+
+  // Anzeige während des Dragvorganges (drop nicht erlaubt, drop erlaubt, insert erlaubt)
   private innerHtmlDropNotAllowed: string = "<i class='fa fa-ban' style='font-size:14px;color:red';></i>&nbsp;&nbsp;&nbsp;";
   private innerHtmlDropAllowed: string = "<i class='fa fa-plus' style='font-size:14px;color:green';></i>&nbsp;&nbsp;&nbsp;";
   private innerHtmlDropInsert: string = "<i class='fa fa-bars' style='font-size:14px;color:blue';></i>&nbsp;&nbsp;&nbsp;";
+
+  // Verschiebung des Drag/Drop Elementes
   private dragShiftX: number = 15;
   private dragShiftY: number = 15;
 
   // Attribute Keys
+  // source => Drag Source Id (z.B. tree1)
   private attributeKeySource: string = "source";
+  // data => Drag Daten JSON-serialisierte Informationen der Nodes
   private attributeKeyData: string = "data";
+  // datalength => Anzahl der zu "draggenden" Elemente (wird in Klammer angezeigt beim Drag)
   private attributeKeyDataLength: string = "datalength";
+  // text => Anzeigetext (node.item)
   private attributeKeyText: string = "text";
+  // nodeid => Id des zu droppenden Nodes
   private attributeKeyNodeId: string = "nodeid";
+  // dropAllowed => enthält die Information, ob auf dem aktuellen Objekt, über dem
+  // man sich befindet, gedroppt werden kann
   private attributeKeyDropAllowed: string = "dropAllowed";
+  // dragNodeExpandOverArea => Position auf der gedroppt werden würde
+  // 0 => auf dem Node
+  // 1 => oberhalb des Nodes
+  // 2 => unterhalb des Nodes
   private attributeKeyDragNodeExpandOverArea: string = "dragNodeExpandOverArea";
 
   // Class für Droppable
   private classNameDroppable: string = ".droppable"
 
   /** Map from flat node to nested node. This helps us finding the nested node to be modified */
-  public flatNodeMap: Map<TodoItemFlatNode, TodoItemNode> = new Map<TodoItemFlatNode, TodoItemNode>();
+  public flatNodeMap: Map<FlateTreeNode, TreeNode> = new Map<FlateTreeNode, TreeNode>();
   /** Map from nested node to flattened node. This helps us to keep the same object for selection */
-  private nestedNodeMap: Map<TodoItemNode, TodoItemFlatNode> = new Map<TodoItemNode, TodoItemFlatNode>();
+  private nestedNodeMap: Map<TreeNode, FlateTreeNode> = new Map<TreeNode, FlateTreeNode>();
 
-  /** The new item's name */
-  newItemName: string = '';
-  treeControl: FlatTreeControl<TodoItemFlatNode>;
-  treeFlattener: MatTreeFlattener<TodoItemNode, TodoItemFlatNode>;
-  dataSource: MatTreeFlatDataSource<TodoItemNode, TodoItemFlatNode>;
+  treeControl: FlatTreeControl<FlateTreeNode>;
+  treeFlattener: MatTreeFlattener<TreeNode, FlateTreeNode>;
+  dataSource: MatTreeFlatDataSource<TreeNode, FlateTreeNode>;
 
-  private database: ChecklistDatabase;
+  private database: MaterialTreeDataBase;
+  // Enthält die Information, ob der Root selektiert ist (Ausblenden des Löschen Buttons)
   public rootSelected: boolean = false;
 
   constructor() {
   }
 
   ngOnInit(): void {
-    this.database = new ChecklistDatabase(this.dataKey);
+    this.database = new MaterialTreeDataBase(this.dataKey);
     this.treeFlattener = new MatTreeFlattener(
       this.transformer,
       this.getLevel,
       this.isExpandable,
       this.getChildren
     );
-    this.treeControl = new FlatTreeControl<TodoItemFlatNode>(
+    this.treeControl = new FlatTreeControl<FlateTreeNode>(
       this.getLevel,
       this.isExpandable
     );
@@ -79,26 +96,26 @@ export class MaterialTreeComponent implements OnInit{
     this.treeControl.expand(this.treeControl.dataNodes[0]);
   }
 
-  getLevel = (node: TodoItemFlatNode) => node.level;
+  getLevel = (node: FlateTreeNode) => node.level;
 
-  isExpandable = (node: TodoItemFlatNode) => node.expandable;
+  isExpandable = (node: FlateTreeNode) => node.expandable;
 
-  getChildren = (node: TodoItemNode): TodoItemNode[] => node.children;
+  getChildren = (node: TreeNode): TreeNode[] => node.children;
 
-  hasChild = (_: number, _nodeData: TodoItemFlatNode) => _nodeData.expandable;
+  hasChild = (_: number, _nodeData: FlateTreeNode) => _nodeData.expandable;
 
-  hasNoContent = (_: number, _nodeData: TodoItemFlatNode) =>
+  hasNoContent = (_: number, _nodeData: FlateTreeNode) =>
     _nodeData.item === '';
 
   /**
    * Transformer to convert nested node to flat node. Record the nodes in maps for later use.
    */
-  transformer = (node: TodoItemNode, level: number) => {
-    const existingNode: TodoItemFlatNode = this.nestedNodeMap.get(node);
-    const flatNode: TodoItemFlatNode =
+  transformer = (node: TreeNode, level: number) => {
+    const existingNode: FlateTreeNode = this.nestedNodeMap.get(node);
+    const flatNode: FlateTreeNode =
       existingNode && existingNode.item === node.item
         ? existingNode
-        : new TodoItemFlatNode();
+        : new FlateTreeNode();
     flatNode.id = node.id;
     flatNode.item = node.item;
     flatNode.level = level;
@@ -115,19 +132,19 @@ export class MaterialTreeComponent implements OnInit{
     if (!this.activeNode) {
       return;
     }
-    const parentNode: TodoItemNode = this.flatNodeMap.get(this.activeNode);
-    const newItem: TodoItemNode = new TodoItemNode();
+    const parentNode: TreeNode = this.flatNodeMap.get(this.activeNode);
+    const newItem: TreeNode = new TreeNode();
     newItem.id = UUID.UUID();
     newItem.parentId = this.activeNode.id;
     newItem.isFolder = false;
-    newItem.item = 'Neuer Eintrag';
+    newItem.item = this.newItemText;
     newItem.children = [];
     this.database.insertItem(parentNode, newItem);
     this.database.dataChange.next(this.database.data);
     this.treeControl.expand(this.activeNode);
   }
 
-  deleteItem(node: TodoItemFlatNode) {
+  deleteItem(node: FlateTreeNode) {
     this.database.deleteItem(this.flatNodeMap.get(node));
   }
 
@@ -164,8 +181,8 @@ export class MaterialTreeComponent implements OnInit{
   public blurEvent() {
     this.nodeEditMode = false;
   }*/
-  activeNode: TodoItemFlatNode;
-  activeNodes: TodoItemFlatNode[] = [];
+  activeNode: FlateTreeNode;
+  activeNodes: FlateTreeNode[] = [];
   pressTimer: number;
   currentDroppable: Element = null;
 
@@ -236,7 +253,7 @@ export class MaterialTreeComponent implements OnInit{
     };
   }   
 
-  createNewIdsAfterCopy(nodes: TodoItemNode[]) {
+  createNewIdsAfterCopy(nodes: TreeNode[]) {
     if (nodes?.length > 0) {
       nodes.forEach((node) => {
         node.id = UUID.UUID();
@@ -247,6 +264,7 @@ export class MaterialTreeComponent implements OnInit{
     }
   }
 
+  // Bewegt den Drag/Drop Text auf dem Bildschirm an die entsprechende Position
   moveAt(pageX, pageY) {
     let element = document.getElementById(this.dragGhostId);
     if (!element) {
@@ -256,6 +274,7 @@ export class MaterialTreeComponent implements OnInit{
     element.style.top = pageY + this.dragShiftY + 'px';
   }
 
+  // Entfernt die "externen" Eventlistener
   removeEventListeners() {
     document.onmousemove = ((event)  => {
       undefined; 
@@ -285,7 +304,6 @@ export class MaterialTreeComponent implements OnInit{
     if (ghost && ghost.parentNode) {
       ghost.parentNode.removeChild(ghost);
     }
-   // this.dragNodeExpandOverArea = "-1";
     this.currentDroppable = undefined;
   }
 
@@ -313,10 +331,12 @@ export class MaterialTreeComponent implements OnInit{
       return;
     }
     
+    // Wenn Drag und Drop innerhalb desselben Baumes erfolgt, prüfen, ob ein Parent in einen Child gedroppt werden soll.
+    // Dies ist nur dann möglich, wenn das Drop-Target kein Descendant des Drag Objektes ist.
     if (source == this.id) {
       let index = this.treeControl.dataNodes.findIndex(x => x.id == nodeid);
       if (index != -1) {
-        let descendants: TodoItemFlatNode[] = this.treeControl.getDescendants(this.treeControl.dataNodes[index]);
+        let descendants: FlateTreeNode[] = this.treeControl.getDescendants(this.treeControl.dataNodes[index]);
         if (descendants.findIndex(x => x.id == node.id) != -1) {
           element.innerHTML = this.innerHtmlDropNotAllowed + nodesString
           element.setAttribute(this.attributeKeyDropAllowed, "0");
@@ -324,12 +344,12 @@ export class MaterialTreeComponent implements OnInit{
         }
       }
     }
-  //  element.hidden = true;
+
     let elemBelow = document.elementFromPoint(event.clientX, event.clientY);
     if (!elemBelow) {
       return;
     }   
-    let dragNodeExpandOverArea;
+    let dragNodeExpandOverArea: string = "-1";
     let middle = elemBelow.getBoundingClientRect().y + (elemBelow.getBoundingClientRect().height / 2);
     // Dropposition oberhalb
     if (middle - event.y > 10) {
@@ -344,29 +364,20 @@ export class MaterialTreeComponent implements OnInit{
       dragNodeExpandOverArea = "0";
     }
     element.setAttribute(this.attributeKeyDragNodeExpandOverArea, dragNodeExpandOverArea);
-  //  element.hidden = false;
-
     // Kein Droppable verfügbar, Node leer oder gleicher Node, auf den gedroppt werden soll
     let droppableBelow = elemBelow.closest(this.classNameDroppable);
+
     if (!node ||!droppableBelow || droppableBelow.id == element.id || node.id == nodeid || 
-      (dragNodeExpandOverArea == 1 && droppableBelow.getAttribute("isroot") == "true")) {
+      (dragNodeExpandOverArea == "1" && droppableBelow.getAttribute("isroot") == "true")) {
       element.innerHTML = this.innerHtmlDropNotAllowed + nodesString
       element.setAttribute(this.attributeKeyDropAllowed, "0");
       return;
     }
 
-/*    if (node.item === "Unternehmen") {
-      element.innerHTML = "<i class='fa fa-ban' style='font-size:14px;color:red';></i>&nbsp;&nbsp;&nbsp;" + nodesString;
-      element.setAttribute('dropAllowed', "0");
-    } else */
-    if (elemBelow.nodeName === "MAT-TREE-NODE" || elemBelow.nodeName === "BUTTON") {
+    if (elemBelow.nodeName === "MAT-TREE-NODE" || elemBelow.nodeName === "BUTTON" || elemBelow.nodeName === "MAT-ICON") {
         element.innerHTML = this.innerHtmlDropInsert + nodesString;
         element.setAttribute(this.attributeKeyDropAllowed, "1");
         this.currentDroppable = droppableBelow;
-    } else if (elemBelow.nodeName === "MAT-ICON") {
-      element.innerHTML = this.innerHtmlDropAllowed + nodesString;
-      element.setAttribute(this.attributeKeyDropAllowed, "1");
-      this.currentDroppable = droppableBelow;
     } else {
       if (this.currentDroppable) { // null when we were not over a droppable before this event
         element.innerHTML = this.innerHtmlDropNotAllowed + nodesString;
@@ -375,6 +386,8 @@ export class MaterialTreeComponent implements OnInit{
       this.currentDroppable = droppableBelow;
       if (this.currentDroppable) { // null if we're not coming over a droppable now
         // (maybe just left the droppable)
+        // Drop erlaubg, wenn es sich nicht um einen Ordner handelt und das DropElement nicht dieselbe ID aufweist, wie das
+        // Drag Element
         if (this.currentDroppable.id !== element.id && this.currentDroppable.getAttribute('isfolder') === "false" ) {
           element.innerHTML = this.innerHtmlDropAllowed + nodesString;
           element.setAttribute(this.attributeKeyDropAllowed, "1");
@@ -402,24 +415,31 @@ export class MaterialTreeComponent implements OnInit{
         this.cleanUp();
         return;
       }
-      let newItem: TodoItemNode;
+      let newItem: TreeNode;
 
-      for(let i = nodeDataEntries.length -1; i >= 0; i-- ) {
+      if (dragNodeExpandOverArea == "2") {
+        nodeDataEntries.sort((x, y) => {
+          if (x.item < y.item) {
+            return 1;
+          }
+          if (x.item > y.item) {
+            return -1;
+          }
+          return 0;
+        });
+      }
+
+      for(let i = 0; i < nodeDataEntries.length; i++) {
         let nodeData = nodeDataEntries[i];
-        let newNode = new TodoItemNode();
+        let newNode = new TreeNode();
+        newNode.id = nodeData.id;
         newNode.item = nodeData.item;
-        // KEINE neue ID wenn von gleichem Baum ...
-      //  if (source == this.id) {//} && event.ctrlKey == false) {
-          newNode.id = nodeData.id;
-//        } else {
-  //        newNode.id = UUID.UUID();
-    //    }
         newNode.isFolder = nodeData.isFolder;
         newNode.parentId = nodeData.id;
         newNode.children = [];
 
         if (source == this.id) {
-          let index: TodoItemNode = this.database.findNode(this.database.data[0], newNode.id);
+          let index: TreeNode = this.database.findNode(this.database.data[0], newNode.id);
           if (index != undefined) {
              newNode.children = index.children;
           }

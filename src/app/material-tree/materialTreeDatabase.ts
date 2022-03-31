@@ -1,18 +1,18 @@
 import { UUID } from "angular2-uuid";
 import { BehaviorSubject } from "rxjs";
-import { TodoItemNode } from "./datamodel/dataModel";
+import { TreeNode } from "./datamodel/dataModel";
 
 /**
- * Checklist database, it can build a tree structured Json object.
- * Each node in Json object represents a to-do item or a category.
+ * MaterialTreeDataBase, it can build a tree structured Json object.
+ * Each node in Json object represents a tree-node or a category.
  * If a node is a category, it has children items and new items can be added under the category.
  */
- export class ChecklistDatabase {
-   dataChange = new BehaviorSubject<TodoItemNode[]>([]);
+ export class MaterialTreeDataBase {
+   dataChange = new BehaviorSubject<TreeNode[]>([]);
    dataKey: number;
-   baseNode: TodoItemNode;
+   baseNode: TreeNode;
 
-   get data(): TodoItemNode[] {
+   get data(): TreeNode[] {
      return this.dataChange.value;
    }
  
@@ -21,13 +21,13 @@ import { TodoItemNode } from "./datamodel/dataModel";
     this.initialize();
    }
  
-   public nodes: TodoItemNode[] = []; 
+   public nodes: TreeNode[] = []; 
    count: number = 0;
  
    generateNodes2(nodes: any[], base: string, item: string, firstLevelCount: number): any[] {
     nodes = [];
     for (let i = 0; i < firstLevelCount; i++) {
-      let child: TodoItemNode = new TodoItemNode();
+      let child: TreeNode = new TreeNode();
       child.item = `${item} ${i}`; 
       child.id = UUID.UUID(); 
       child.parentId = undefined; 
@@ -42,7 +42,7 @@ import { TodoItemNode } from "./datamodel/dataModel";
    generateNodes(nodes: any[], base: string, item: string, firstLevelCount: number, secondLevelCount: number, thirdLevelCount: number, fourthLevelCount: number, fifthsLevelCount: number): any[] {
      let order:number = 0;
      nodes = [];
-     let child: TodoItemNode = new TodoItemNode();
+     let child: TreeNode = new TreeNode();
      child.item = base;
      child.id = base; 
      child.parentId = undefined; 
@@ -53,7 +53,7 @@ import { TodoItemNode } from "./datamodel/dataModel";
     
      order = 0;
      for (let i = 0; i < firstLevelCount; i++) {
-       let child: TodoItemNode = new TodoItemNode();
+       let child: TreeNode = new TreeNode();
        child.item = `${item} ${i}`; 
        child.id = UUID.UUID(); 
        child.parentId = nodes[0].id; 
@@ -77,11 +77,11 @@ import { TodoItemNode } from "./datamodel/dataModel";
      return nodes;
    }
  
-   generateSubChilds(child: TodoItemNode, count: number, isFolder: boolean) {
+   generateSubChilds(child: TreeNode, count: number, isFolder: boolean) {
     let order: number = 0;
-    let children: TodoItemNode[] = [];
+    let children: TreeNode[] = [];
     for (let i = 0; i < count; i++) {
-      let newchild: TodoItemNode = new TodoItemNode();
+      let newchild: TreeNode = new TreeNode();
       newchild.item = `${child.item} ${i}`; 
       newchild.id = UUID.UUID(); 
       newchild.parentId = child.id; 
@@ -128,11 +128,11 @@ import { TodoItemNode } from "./datamodel/dataModel";
    }
  
    /** Add an item to to-do list */
-   insertItem(parent: TodoItemNode, newNode: TodoItemNode, addFirst: boolean = false): TodoItemNode {
+   insertItem(parent: TreeNode, newNode: TreeNode, addFirst: boolean = false): TreeNode {
     if (parent.children == undefined) {
        parent.children = [];
      }
-     const newItem: TodoItemNode = new TodoItemNode();
+     const newItem: TreeNode = new TreeNode();
      newItem.id = newNode.id;
      newItem.parentId = parent.id;
      newItem.item = newNode.item;
@@ -148,9 +148,9 @@ import { TodoItemNode } from "./datamodel/dataModel";
      return newItem;
    }
  
-   insertItemAbove(node: TodoItemNode, newNode: TodoItemNode): TodoItemNode {
-     const parentNode: TodoItemNode = this.getParentFromNodes(node);
-     const newItem : TodoItemNode = new TodoItemNode();
+   insertItemAbove(node: TreeNode, newNode: TreeNode): TreeNode {
+     const parentNode: TreeNode = this.getParentFromNodes(node);
+     const newItem : TreeNode = new TreeNode();
      newItem.id = newNode.id;
      newItem.parentId = parentNode.id;
      newItem.item = newNode.item;
@@ -175,12 +175,12 @@ import { TodoItemNode } from "./datamodel/dataModel";
     });
    }
 
-   insertItemBelow(node: TodoItemNode, newNode: TodoItemNode): TodoItemNode {
+   insertItemBelow(node: TreeNode, newNode: TreeNode): TreeNode {
     let parentNode = this.getParentFromNodes(node);
      if (!parentNode) {
        parentNode = node;
      }
-     const newItem = new TodoItemNode();
+     const newItem = new TreeNode();
      newItem.id = newNode.id;
      newItem.parentId = parentNode.id;
      newItem.item = newNode.item;
@@ -202,7 +202,7 @@ import { TodoItemNode } from "./datamodel/dataModel";
      return newItem;
    }
  
-   getParentFromNodes(node: TodoItemNode): TodoItemNode {
+   getParentFromNodes(node: TreeNode): TreeNode {
      for (let i = 0; i < this.data.length; ++i) {
        const currentRoot = this.data[i];
        const parent = this.getParent(currentRoot, node);
@@ -213,7 +213,7 @@ import { TodoItemNode } from "./datamodel/dataModel";
      return null;
    }
  
-   getParent(currentRoot: TodoItemNode, node: TodoItemNode): TodoItemNode {
+   getParent(currentRoot: TreeNode, node: TreeNode): TreeNode {
      if (currentRoot.children && currentRoot.children.length > 0) {
        for (let i = 0; i < currentRoot.children.length; ++i) {
          const child = currentRoot.children[i];
@@ -230,17 +230,12 @@ import { TodoItemNode } from "./datamodel/dataModel";
      return null;
    }
  
-   /*updateItem(node: TodoItemNode, name: string) {
-     node.item = name;
-     this.dataChange.next(this.data);
-   }*/
- 
-   deleteItem(node: TodoItemNode) {
+   deleteItem(node: TreeNode) {
      this.deleteNode(this.data, node);
      this.dataChange.next(this.data);
    }
  
-   copyPasteItem(from: TodoItemNode, to: TodoItemNode): TodoItemNode {
+   copyPasteItem(from: TreeNode, to: TreeNode): TreeNode {
     const newItem = this.insertItem(to, from);
      if (from.children) {
        from.children.forEach((child) => {
@@ -250,14 +245,14 @@ import { TodoItemNode } from "./datamodel/dataModel";
      return newItem;
    }
 
-  public findNode(root: TodoItemNode, id: string): TodoItemNode {
-      let temp: TodoItemNode;
+  public findNode(root: TreeNode, id: string): TreeNode {
+      let temp: TreeNode;
       return root.id === id
           ? root
           : (root.children || []).some(o => temp = this.findNode(o, id)) && temp;
   }
  
-  copyPasteItemAbove(from: TodoItemNode, to: TodoItemNode): TodoItemNode {
+  copyPasteItemAbove(from: TreeNode, to: TreeNode): TreeNode {
      const newItem = this.insertItemAbove(to, from);
      if (from.children) {
        from.children.forEach((child) => {
@@ -267,7 +262,7 @@ import { TodoItemNode } from "./datamodel/dataModel";
      return newItem;
    }
   
-   deleteNode(nodes: TodoItemNode[], nodeToDelete: TodoItemNode) {
+   deleteNode(nodes: TreeNode[], nodeToDelete: TreeNode) {
     const index: number = nodes.indexOf(nodeToDelete, 0);
      if (index > -1) {
        nodes.splice(index, 1);

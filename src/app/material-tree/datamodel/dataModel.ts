@@ -2,8 +2,8 @@
  * Node for to-do item
  */
  
-export class TodoItemNode {
-    children: TodoItemNode[];
+export class TreeNode {
+    children: TreeNode[];
     item: string;
     id: string;
     parentId: string;
@@ -13,7 +13,7 @@ export class TodoItemNode {
 
 /** Flat to-do item node with expandable and level information */
 
-export class TodoItemFlatNode {
+export class FlateTreeNode {
   item: string;
   level: number;
   expandable: boolean;

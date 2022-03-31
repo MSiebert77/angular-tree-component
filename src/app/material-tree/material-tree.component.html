@@ -10,7 +10,7 @@
         matTreeNodePadding
         [ngClass]="[node.expandable ? 'structure-node' : 'leaf-node',  activeNodes.indexOf(node) != -1 ? 'highlight' : '']"
         [attr.treeid]="id"
-        [attr.isroot]="node.item === 'Unternehmen'"
+        [attr.isroot]="node.parentId == undefined"
         [attr.isfolder]="node.isFolder"
         class="droppable"
         (mousedown)="mouseDown($event, node)"
