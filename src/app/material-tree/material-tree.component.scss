@@ -2,12 +2,14 @@
     font-size: 20px !important;
 }
 .highlight {
-    color: rgba(60, 60, 224, 0.89) !important;
+    background-color: rgba(238, 238, 238, 1) !important;
+    color:#526691 !important;
 }
 .mat-tree-node {
     overflow: visible;
-    cursor: move;
+    cursor: pointer;
     font-size: 13px !important;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     min-height: 30px !important;
     height: 30px;
 }
@@ -22,17 +24,15 @@
 }
 
 .drop-above {
-    border-top: 10px solid #a8e6bf;
-    /* margin-top: -10px;*/
+    border-top: 2px solid green;
 }
   
 .drop-below {
-    border-bottom: 10px solid #a8e6bf;
-    /* margin-bottom: -10px;*/
+    border-bottom: 2px solid yellow;
 }
-  
+/*  
 .drop-center {
-    background-color: #a8e6bf;
+    border: 2px solid green;
 }
   
 .drag-start {
@@ -42,13 +42,6 @@
   
 .drop-not-allowed {
     background-color: rgb(212, 161, 161);
-    color: honeydew;
-} 
-
-.cdk-drag-preview {
-    box-sizing: border-box;
-    border-radius: 4px;
-    box-shadow: 0 5px 5px -3px rgba(0, 0, 0, 0.2),
-                0 8px 10px 1px rgba(0, 0, 0, 0.14),
-                0 3px 14px 2px rgba(0, 0, 0, 0.12);
-  }
+color: honeydew;
+    border: 2px solid rgba(199, 14, 14, 0.89);
+} */

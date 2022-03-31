@@ -1,21 +1,22 @@
-<table>
-  <tr>
-    <td width="1500px" style="vertical-align: top;">
-      <button (click)="add()">Neuer Eintrag</button>
+<table style="height: 100%;">
+  <tr style="height: 50px;">
+    <td width="500px" style="vertical-align: top;">
+      <button (click)="add()" [disabled]="this.treeTarget.activeNodes.length != 1">Neuer Eintrag</button>
+      <button (click)="remove()" [disabled]="this.treeTarget.activeNodes.length == 0 || this.treeTarget.rootSelected">Löschen</button>
+    </td>
+    <td width="500px">
     </td>
     <td width="500px">
     </td>
   </tr>
   <tr>
-    <td>
+    <td height="700px" style="vertical-align: top;">
+      <app-material-tree #treeTarget [id]="'tree1'" [allowMultiselect]="false" [dataKey]="1"></app-material-tree>
     </td>
-  </tr>
-  <tr>
-    <td height="500px" style="vertical-align: top;">
-      <app-material-tree #treeTarget [id]="'tree1'" (dragStarted)="dragStarted($event)" (dragStopped)="dragStopped()" [dataKey]="1"></app-material-tree>
+    <td height="300px" style="vertical-align: top;background-color: burlywood;">
     </td>
-    <td height="100px" style="vertical-align: top;">
-      <app-material-tree #treeSource [id]="'tree2'" [connectedTo]="'tree1'" (dragStarted)="dragStarted($event)" [generateNewIdOnDrag]="true" [orderAllowed]="false" (dragStopped)="dragStopped()" [dataKey]="2"></app-material-tree>
+    <td height="700px" style="vertical-align: top;">
+      <app-material-tree #treeSource [id]="'tree2'" [allowMultiselect]="true" [generateNewIdOnDrag]="true" [dropAllowed]="false" [dataKey]="2"></app-material-tree>
     </td>
   </tr>
 </table>

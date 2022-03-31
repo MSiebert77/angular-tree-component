@@ -10,6 +10,7 @@ import { TodoItemNode } from "./datamodel/dataModel";
  export class ChecklistDatabase {
    dataChange = new BehaviorSubject<TodoItemNode[]>([]);
    dataKey: number;
+   baseNode: TodoItemNode;
 
    get data(): TodoItemNode[] {
      return this.dataChange.value;
@@ -30,7 +31,7 @@ import { TodoItemNode } from "./datamodel/dataModel";
       child.item = `${item} ${i}`; 
       child.id = UUID.UUID(); 
       child.parentId = undefined; 
-      child.isCostCenter = true;
+      child.isFolder = true;
       child.children = []; 
       nodes.push(child);
     }
@@ -39,21 +40,26 @@ import { TodoItemNode } from "./datamodel/dataModel";
 
     // Dummy-Daten erzeugen
    generateNodes(nodes: any[], base: string, item: string, firstLevelCount: number, secondLevelCount: number, thirdLevelCount: number, fourthLevelCount: number, fifthsLevelCount: number): any[] {
+     let order:number = 0;
      nodes = [];
      let child: TodoItemNode = new TodoItemNode();
      child.item = base;
      child.id = base; 
      child.parentId = undefined; 
+     child.isFolder = false;
      child.children = []; 
+     child.order = order;
      nodes.push(child);
     
+     order = 0;
      for (let i = 0; i < firstLevelCount; i++) {
        let child: TodoItemNode = new TodoItemNode();
        child.item = `${item} ${i}`; 
        child.id = UUID.UUID(); 
        child.parentId = nodes[0].id; 
-       child.isCostCenter = false;
+       child.isFolder = false;
        child.children = []; 
+       child.order = order++;
        nodes[0].children.push(child);
      }
      nodes[0].children.forEach((child) => {
@@ -71,14 +77,16 @@ import { TodoItemNode } from "./datamodel/dataModel";
      return nodes;
    }
  
-   generateSubChilds(child: TodoItemNode, count: number, isCostCenter: boolean) {
+   generateSubChilds(child: TodoItemNode, count: number, isFolder: boolean) {
+    let order: number = 0;
     let children: TodoItemNode[] = [];
     for (let i = 0; i < count; i++) {
       let newchild: TodoItemNode = new TodoItemNode();
       newchild.item = `${child.item} ${i}`; 
       newchild.id = UUID.UUID(); 
       newchild.parentId = child.id; 
-      newchild.isCostCenter = isCostCenter;
+      newchild.order = order++; 
+      newchild.isFolder = isFolder;
       newchild.children = []; 
       children.push(newchild);
      }
@@ -88,17 +96,16 @@ import { TodoItemNode } from "./datamodel/dataModel";
    initialize() {
      // Build the tree nodes from Json object. The result is a list of `TodoItemNode` with nested
      //     file node as children.
-     let firstLevel: number = 2;
-     let secondLevel: number = 10;
-     let thirdLevel: number = 5;
-     let fourthLevel: number = 5;
-     let fifthsLevel: number = 5;
+     let firstLevel: number = 5;
+     let secondLevel: number = 5;
+     let thirdLevel: number = 3;
+     let fourthLevel: number = 2;
+     let fifthsLevel: number = 3;
  
      let secondTree: number = 10;
 
-     let data;
      if (this.dataKey == 1) {
-       data = this.generateNodes(
+       this.nodes = this.generateNodes(
         this.nodes,
         'Unternehmen',
         'Node',
@@ -109,7 +116,7 @@ import { TodoItemNode } from "./datamodel/dataModel";
         fifthsLevel,
       );
      } else {
-      data = this.generateNodes2(
+      this.nodes = this.generateNodes2(
         this.nodes,
         '',
         'Node',
@@ -117,21 +124,27 @@ import { TodoItemNode } from "./datamodel/dataModel";
       );
      }
      // Notify the change.
-     this.dataChange.next(data);
+     this.dataChange.next(this.nodes);
    }
  
    /** Add an item to to-do list */
-   insertItem(parent: TodoItemNode, newNode: TodoItemNode): TodoItemNode {
-     if (parent.children == undefined) {
+   insertItem(parent: TodoItemNode, newNode: TodoItemNode, addFirst: boolean = false): TodoItemNode {
+    if (parent.children == undefined) {
        parent.children = [];
      }
      const newItem: TodoItemNode = new TodoItemNode();
      newItem.id = newNode.id;
      newItem.parentId = parent.id;
      newItem.item = newNode.item;
-     newItem.isCostCenter = newNode.isCostCenter;
+     newItem.isFolder = newNode.isFolder;
      newItem.children = newNode.children;
-     parent.children.push(newItem);
+     if (addFirst == true) {
+      parent.children = [newItem, ... parent.children];
+     }
+     else {
+      parent.children.push(newItem);
+     }
+     this.updateOrder(parent);
      return newItem;
    }
  
@@ -141,35 +154,53 @@ import { TodoItemNode } from "./datamodel/dataModel";
      newItem.id = newNode.id;
      newItem.parentId = parentNode.id;
      newItem.item = newNode.item;
-     newItem.isCostCenter = newNode.isCostCenter;
+     newItem.isFolder = newNode.isFolder;
      newItem.children = newNode.children;
      if (parentNode != null) {
-      parentNode.children.splice(parentNode.children.indexOf(node), 0, newItem);
+       parentNode.children.splice(parentNode.children.indexOf(node), 0, newItem);
+     //  console.log("insertItemAbove updateOrder")
+       this.updateOrder(parentNode);
      } else {
        this.data.splice(this.data.indexOf(node), 0, newItem);
-     }
+       console.log("insertItemAbove splice")
+      }
+
      return newItem;
    }
  
-   /*insertItemBelow(node: TodoItemNode, newNode: TodoItemNode): TodoItemNode {
-     const parentNode = this.getParentFromNodes(node);
+   updateOrder(node) {
+    let order = 0;
+    node.children?.forEach((child) => {
+       child.order = order++;
+    });
+   }
+
+   insertItemBelow(node: TodoItemNode, newNode: TodoItemNode): TodoItemNode {
+    let parentNode = this.getParentFromNodes(node);
+     if (!parentNode) {
+       parentNode = node;
+     }
      const newItem = new TodoItemNode();
      newItem.id = newNode.id;
-     newItem.parentId = newNode.parentId;
+     newItem.parentId = parentNode.id;
      newItem.item = newNode.item;
-     newItem.dropNotAllowed = newNode.dropNotAllowed;
+     newItem.isFolder = newNode.isFolder;
+     newItem.children = newNode.children;
      if (parentNode != null) {
        parentNode.children.splice(
          parentNode.children.indexOf(node) + 1,
          0,
          newItem
        );
+      // console.log("insertItemBelow updateOrder")
+       this.updateOrder(parentNode);
      } else {
        this.data.splice(this.data.indexOf(node) + 1, 0, newItem);
+       console.log("insertItemBelow splice")
      }
      // this.dataChange.next(this.data);
      return newItem;
-   }*/
+   }
  
    getParentFromNodes(node: TodoItemNode): TodoItemNode {
      for (let i = 0; i < this.data.length; ++i) {
@@ -219,14 +250,14 @@ import { TodoItemNode } from "./datamodel/dataModel";
      return newItem;
    }
 
-  findNode(root: TodoItemNode, id: string): TodoItemNode {
+  public findNode(root: TodoItemNode, id: string): TodoItemNode {
       let temp: TodoItemNode;
       return root.id === id
           ? root
           : (root.children || []).some(o => temp = this.findNode(o, id)) && temp;
-   }
+  }
  
-   copyPasteItemAbove(from: TodoItemNode, to: TodoItemNode): TodoItemNode {
+  copyPasteItemAbove(from: TodoItemNode, to: TodoItemNode): TodoItemNode {
      const newItem = this.insertItemAbove(to, from);
      if (from.children) {
        from.children.forEach((child) => {

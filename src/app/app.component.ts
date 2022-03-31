@@ -15,19 +15,21 @@ export class AppComponent {
   @ViewChild("treeSource", { static: true }) treeSource: MaterialTreeComponent;
 
   constructor(private appsettingsService: AppsettingsService) {
-
-    
-  }
-  dragStarted(event) {
-    this.draggingItem = event;
-  }
-
-  dragStopped() {
-    console.log("AppComponent: dragStopped");
-    this.draggingItem = undefined;
   }
 
   add() {
-    this.treeTarget.addNewItem();
+    if (this.treeTarget.activeNodes.length != 1) {
+      return;
+    } else {
+      this.treeTarget.addNewItem();
+    }
   }
+
+  remove() {
+    this.treeTarget.activeNodes.forEach((node) => {
+      this.treeTarget.deleteItem(node);
+    });
+    this.treeTarget.activeNodes = [];
+  }
+
 }

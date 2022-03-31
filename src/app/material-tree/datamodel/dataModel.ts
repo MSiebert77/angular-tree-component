@@ -7,7 +7,8 @@ export class TodoItemNode {
     item: string;
     id: string;
     parentId: string;
-    isCostCenter: boolean;
+    isFolder: boolean;
+    order: number;
   }
 
 /** Flat to-do item node with expandable and level information */
@@ -18,5 +19,6 @@ export class TodoItemFlatNode {
   expandable: boolean;
   id: string;
   parentId: string;
-  isCostCenter: boolean;
+  isFolder: boolean;
+  order: number;
 }
